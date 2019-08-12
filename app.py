@@ -1,41 +1,33 @@
-from flask import Flask, request
-from flask_restful import Resource, Api
+from flask import Flask
+from flask_jwt import JWT
+from flask_restful import Api
 
+from resources.item import Item, Items
+from resources.user import UserRegister
+from resources.store import Store, Stores
+from security import authenticate, identity
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = 'hitesh'
 api = Api(app)
 
-items = []
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 
-class Item(Resource):
+jwt = JWT(app, authenticate, identity)
 
-    def get(self, name):
-        item = next(filter(lambda x: x['name'] == name, items), None)
-        return {'item': item}, 200 if item else 404
-
-    def post(self, name):
-        if next(filter(lambda x: x['name'] == name, items), None):
-            return {'message': 'An item %s already exists' % name}, 400
-        data = request.get_json()
-        item = {'name': name, 'price': data.get('price')}
-        items.append(item)
-        return item, 201
-
-    def put(self, name):
-        pass
-
-    def delete(self, name):
-        pass
-
-
-class Items(Resource):
-
-    def get(self):
-        return {'items': items}
-
-
+api.add_resource(Store, '/store/<string:name>')
 api.add_resource(Item, '/item/<string:name>')
 api.add_resource(Items, '/items')
+api.add_resource(Stores, '/stores')
+api.add_resource(UserRegister, '/register')
 
-app.run(port=5004, debug=True)
+if __name__ == "__main__":
+    from Ecommerce.db import db
+    db.init_app(app)
+    app.run(port=5005, debug=True)
